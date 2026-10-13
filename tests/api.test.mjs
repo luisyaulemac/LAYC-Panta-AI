@@ -80,3 +80,17 @@ test('Analysis returns the identical fresh market quote for synchronizing Spotli
   assert.doesNotMatch(JSON.stringify(explained.data),/mock-secret/);
  }finally{globalThis.fetch=prior;}
 });
+
+test('Official Panta status filter narrows the upstream catalog and validates input',async()=>{
+ const prior=globalThis.fetch;let requested='';
+ globalThis.fetch=async(url)=>{requested=String(url);return new Response(JSON.stringify({items:[],nextCursor:null}),{status:200,headers:{'content-type':'application/json'}})};
+ try{
+  const ok=await call('/api/markets?mode=live&status=secondary',{PANTA_API_KEY:'mock'});
+  assert.equal(ok.status,200);assert.match(requested,/status=secondary/);
+  const primary=await call('/api/markets?mode=live&status=primary',{PANTA_API_KEY:'mock'});
+  assert.equal(primary.status,200);assert.match(requested,/status=primary/);
+  const unsafe=await call('/api/markets?mode=live&status=invalid',{PANTA_API_KEY:'mock'});
+  assert.equal(unsafe.status,400);assert.equal(unsafe.data.code,'INVALID_STATUS');
+  assert.doesNotMatch(JSON.stringify(ok.data),/mock/);
+ }finally{globalThis.fetch=prior;}
+});
