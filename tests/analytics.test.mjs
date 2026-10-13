@@ -23,3 +23,11 @@ test('Market sorting and filtering work with real Panta-shaped data',()=>{
  const markets=demoMarkets.map(x=>normalizeMarket(x,{demo:true}));
  const r=filterMarkets(markets,{category:'crypto',search:'BTC',sort:'volume'});assert.equal(r.length,2);assert.ok(r.every(x=>/BTC/.test(x.title)));
 });
+
+test('Live catalog empty titles display a safe placeholder',()=>{
+ const m=normalizeMarket({marketId:'89wXZbH7b5JXbfpWAujggNhvGWjtvrSXnbFt8Z2QS5Ec',title:'   ',yesPrice:null,noPrice:null});
+ assert.equal(m.title,'Untitled market');
+ assert.equal(m.yes,null);
+ assert.equal(m.no,null);
+ assert.equal(m.source,'panta');
+});
