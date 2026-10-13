@@ -1,6 +1,6 @@
 # LAYC Panta AI — Prediction Intelligence Platform
 
-**Hackathon MVP · v0.1.2**
+**Hackathon MVP · v0.1.3**
 
 [**Launch live dashboard**](https://layc-panta-ai.luisyaulemac.workers.dev/) · [**GitHub repository**](https://github.com/luisyaulemac/LAYC-Panta-AI) · [**Colosseum project**](https://colosseum.com/arena/projects/17766)
 
@@ -11,8 +11,8 @@ Read-only prediction market intelligence for the Solana ecosystem, built on Pant
 - Public Cloudflare Worker deployed at the dashboard URL above.
 - Authenticated **Panta production (Live) API** integration verified end-to-end: list request returned real market identifiers and descriptions; market detail requests returned available YES/NO quotes.
 - A private `pk_live_` key is stored as a Cloudflare Worker secret, never in this repository or browser JavaScript.
-- Live catalog prioritizes **named, non-resolved, non-expired** markets. Use visibility controls to include resolved or untitled rows; use the pagination control to request more catalog entries where available.
-- **Synchronized details and insights:** explanation responses carry the exact live market quote used to calculate the analysis. The browser updates Market Spotlight and row statistics from that same response to avoid contradictory figures. If Panta omits prices or volume, the interface shows an unavailable state rather than inventing zeroes.
+- Live catalog defaults to Panta's official **secondary (trading) phase** server-side filter, and supports **primary** or **all phases** from the dashboard. Client-side visibility controls can include resolved/ended or untitled rows; cursor pagination requests more entries when the server returns a next cursor.
+- **Synchronized details and insights:** explanation responses carry the exact live market quote used to calculate the analysis. The browser updates Market Spotlight and row statistics from that same response to avoid contradictory figures. If Panta omits prices or volume, the interface shows an unavailable state rather than inventing zeroes. The API documentation explains that spot quotes depend on upstream RPC availability.
 - The catalog pagination action is visible beside filters when more pages exist; only markets returned by Panta are displayed.
 - Demo mode is separately labeled and uses fictional scenarios and synthetic chart observations.
 - **Rules-based explanations are available without paid AI.** Optional external generative AI requires separate configuration and is not currently enabled. Do not interpret explanations as market forecasts.
