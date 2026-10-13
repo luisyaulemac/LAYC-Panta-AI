@@ -31,3 +31,14 @@ test('Live catalog empty titles display a safe placeholder',()=>{
  assert.equal(m.no,null);
  assert.equal(m.source,'panta');
 });
+
+test('Missing live volume remains unknown and does not trigger false low-volume warning',()=>{
+ const m=normalizeMarket({marketId:'abc',title:'Live event',yesPrice:null,noPrice:null});
+ assert.equal(m.volume,null);
+ assert.ok(analyzeMarket(m).reasons.some(x=>/volume unavailable/i.test(x)));
+ assert.equal(analyzeMarket(m).alerts.some(x=>x.label==='Low reported volume'),false);
+});
+test('An explicitly reported zero volume is preserved',()=>{
+ const m=normalizeMarket({marketId:'abc',title:'Live event',volumeUsdc:0});
+ assert.equal(m.volume,0);
+});
