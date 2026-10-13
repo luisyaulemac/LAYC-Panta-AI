@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',showResolved:false,showUntitled:false,phase:'secondary',nextCursor:null,loadingMore:false,requestId:0};
+const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',showResolved:false,showUntitled:false,phase:'secondary',nextCursor:null,loadingMore:false,requestId:0,catalogSerial:0,inspected:new Set()};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>n===null||n===undefined?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n)||0);
 const pct=v=>v===null||v===undefined?'—':`${(Number(v)*100).toFixed(0)}%`;
@@ -24,7 +24,8 @@ function filtered(){const q=state.search.toLowerCase().trim();return state.all.f
  }).sort((a,b)=>state.sort==='uncertainty'?(quickAnalysis(b).uncertainty??-1)-(quickAnalysis(a).uncertainty??-1):state.sort==='yes'?(b.yes??-1)-(a.yes??-1):(b.volume??-1)-(a.volume??-1))}
 function setText(id,text){$(id).textContent=text}
 function fillCategories(){const options=[...new Set(state.all.map(m=>m.category))].sort();$('#categoryFilter').innerHTML='<option value="all">All categories</option>'+options.map(c=>`<option value="${esc(c)}">${esc(c[0].toUpperCase()+c.slice(1))}</option>`).join('');if(!options.includes(state.category))state.category='all';$('#categoryFilter').value=state.category;}
-function renderStats(){const shown=filtered(),priced=shown.filter(m=>m.yes!==null);setText('#statMarkets',String(shown.length));setText('#statVolume',usd(shown.some(m=>m.volume!==null)?shown.reduce((s,m)=>s+(m.volume??0),0):null));setText('#statContested',priced.length?String(priced.filter(m=>quickAnalysis(m).uncertainty>=80).length):'—');setText('#statAlerts',priced.length?String(shown.reduce((s,m)=>s+quickAnalysis(m).alerts,0)):'—');}
+function renderStats(){const shown=filtered(),priced=shown.filter(m=>m.yes!==null&&m.no!==null);setText('#statMarkets',String(shown.length));setText('#statVolume',usd(shown.some(m=>m.volume!==null)?shown.reduce((s,m)=>s+(m.volume??0),0):null));setText('#statContested',priced.length?String(priced.filter(m=>quickAnalysis(m).uncertainty>=80).length):'—');setText('#statAlerts',priced.length?String(shown.reduce((s,m)=>s+quickAnalysis(m).alerts,0)):'—');renderCoverage();}
+function renderCoverage(){if(state.mode==='demo'){setText('#coverage','◈ DEMO · Fictional sample markets and charts, separate from real Panta data');return;}const total=state.all.length,shown=filtered(),priced=shown.filter(m=>m.yes!==null&&m.no!==null).length;setText('#coverage',`⬡ LIVE PANTA · ${total} catalog records · ${shown.length} visible · ${state.inspected.size} details checked · ${priced} with available YES/NO quotes. Missing prices are not estimated.`);}
 function renderList(){const rows=filtered();setText('#marketCount',`${rows.length} markets`);renderMore();if(!rows.length){$('#marketList').innerHTML='<div class="loading">No markets match your filters. In Live mode, include resolved or untitled markets, or load another page.</div>';return;}
  $('#marketList').innerHTML=rows.map(m=>{
  const total=(m.yes!==null&&m.no!==null)?m.yes+m.no:0;
@@ -59,7 +60,7 @@ function reconcileMarket(existing,detail){
 async function selectMarket(id){const version=++state.requestId;let market=state.all.find(m=>m.id===id);if(!market)return;
  state.selected=market;renderList();renderSpotlight();setText('#aiSummary','Click “Generate insight” for a transparent data-driven explanation.');$('#insightAlerts').innerHTML='';setText('#aiEngine','Free rules engine');
  if(state.mode==='live'){
-  try{const result=await api(`/api/market/${encodeURIComponent(id)}?mode=live`);if(version!==state.requestId)return;if(result.market?.id!==id)throw new Error('Panta detail returned a mismatched market');market=reconcileMarket(market,result.market);state.selected=market;
+  try{const result=await api(`/api/market/${encodeURIComponent(id)}?mode=live`);if(version!==state.requestId)return;if(result.market?.id!==id)throw new Error('Panta detail returned a mismatched market');market=reconcileMarket(market,result.market);state.selected=market;state.inspected.add(id);
    const ix=state.all.findIndex(m=>m.id===id);if(ix>=0)state.all[ix]=market;renderStats();renderList();renderSpotlight();}
   catch(e){if(version===state.requestId){setText('#aiSummary',`Cannot load live prices: ${e.message}. The catalog may still be available.`);}}
  }
@@ -68,19 +69,21 @@ function renderConnection(){const ready=Boolean(state.status?.pantaConfigured),l
  const warning=$('#dataWarning');warning.classList.toggle('live',live);warning.textContent=live?'LIVE PANTA MODE — Real catalog data. YES/NO prices load per market; historical charts reflect only browser observations.':'DEMO ENVIRONMENT — All market scenarios, volumes and chart histories are fictional. Connect Panta to view real catalog data.';
  setText('#sourceFooter',live?`Panta live read-only catalog · ${state.phase||'all'} phase · filtered results`:'Fictional demo dataset');$('#liveFilters').hidden=!live;renderMore();}
 function renderMore(){const visible=filtered().length,showMore=state.mode==='live'&&Boolean(state.nextCursor);$('#loadMoreWrap').hidden=!showMore;$('#loadNextTop').hidden=!showMore;$('#loadMoreButton').disabled=state.loadingMore;$('#loadNextTop').disabled=state.loadingMore;setText('#loadMoreButton',state.loadingMore?'Loading Panta markets…':'Load more Panta markets ↓');setText('#loadNextTop',state.loadingMore?'Loading…':'Find more markets ↓');setText('#catalogNote',`${state.all.length} loaded · ${visible} visible`);}
-async function loadMarkets(){state.nextCursor=null;state.loadingMore=false;$('#marketList').innerHTML='<div class="loading">Loading '+(state.mode==='demo'?'demo':'Panta')+' markets…</div>';
- try{const data=await api(`/api/markets?mode=${state.mode}&limit=40${state.mode==='live'&&state.phase?'&status='+encodeURIComponent(state.phase):''}`);state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);}
+async function loadMarkets(){const serial=++state.catalogSerial,mode=state.mode,phase=state.phase;state.requestId++;state.nextCursor=null;state.loadingMore=false;state.inspected=new Set();$('#marketList').innerHTML='<div class="loading">Loading '+(mode==='demo'?'demo':'Panta')+' markets…</div>';
+ try{const data=await api(`/api/markets?mode=${mode}&limit=50${mode==='live'&&phase?'&status='+encodeURIComponent(phase):''}`);if(serial!==state.catalogSerial)return;state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);if(mode==='live'&&serial===state.catalogSerial)void discoverMore(serial);}
  catch(e){state.all=[];state.selected=null;state.nextCursor=null;renderStats();renderSpotlight();renderMore();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
 }
-async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadingMore)return;
- state.loadingMore=true;renderMore();const cursor=state.nextCursor;
- try{const data=await api(`/api/markets?mode=live&limit=40${state.phase?'&status='+encodeURIComponent(state.phase):''}&cursor=${encodeURIComponent(cursor)}`);
+async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadingMore)return false;
+ const serial=state.catalogSerial,phase=state.phase;state.loadingMore=true;renderMore();const cursor=state.nextCursor;
+ try{const data=await api(`/api/markets?mode=live&limit=50${phase?'&status='+encodeURIComponent(phase):''}&cursor=${encodeURIComponent(cursor)}`);
+  if(serial!==state.catalogSerial)return false;
   const seen=new Set(state.all.map(m=>m.id));for(const m of data.items||[])if(!seen.has(m.id)){state.all.push(m);seen.add(m.id);}
   state.nextCursor=data.nextCursor&&data.nextCursor!==cursor?data.nextCursor:null;
-  fillCategories();renderStats();renderList();setText('#lastSync',niceTime());if(!state.selected&&filtered()[0])await selectMarket(filtered()[0].id);
- }catch(e){setText('#aiSummary',`Could not load next page: ${e.message}`);}
- finally{state.loadingMore=false;renderMore();}
+  fillCategories();renderStats();renderList();setText('#lastSync',niceTime());if(!state.selected&&filtered()[0])await selectMarket(filtered()[0].id);return true;
+ }catch(e){if(serial===state.catalogSerial)setText('#aiSummary',`Could not load next page: ${e.message}`);return false;}
+ finally{if(serial===state.catalogSerial){state.loadingMore=false;renderMore();}}
 }
+async function discoverMore(serial){for(let page=0;page<2;page++){if(serial!==state.catalogSerial||state.mode!=='live'||filtered().length>=6||!state.nextCursor)break;const loaded=await loadMore();if(!loaded)break;}}
 async function explain(){const market=state.selected;if(!market)return;
  const requestedMode=state.mode,button=$('#explainButton');button.disabled=true;setText('#aiSummary','Building grounded insight…');$('#insightAlerts').innerHTML='';
  try{const response=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:market.id,mode:requestedMode,generative:Boolean(state.status?.aiConfigured)})});
@@ -89,7 +92,7 @@ async function explain(){const market=state.selected;if(!market)return;
   if(response.market?.id===market.id){
    const old=state.all.find(m=>m.id===market.id)||market;
    const fresh=reconcileMarket(old,response.market);
-   state.selected=fresh;
+   state.selected=fresh;state.inspected.add(market.id);
    const ix=state.all.findIndex(m=>m.id===market.id);if(ix>=0)state.all[ix]=fresh;
    renderStats();renderList();renderSpotlight();
   }
@@ -98,7 +101,7 @@ async function explain(){const market=state.selected;if(!market)return;
  }catch(e){if(state.selected?.id===market.id&&state.mode===requestedMode)setText('#aiSummary',e.message);}finally{button.disabled=false;}
 }
 async function main(){try{state.status=await api('/api/status');if(state.status.pantaConfigured)state.mode='live';setText('#apiStatus',state.status.pantaConfigured?'● Panta Live available':'◌ Demo ready');}catch(e){setText('#apiStatus','● Server unavailable');$('#apiStatus').classList.add('failed');}
- renderConnection();await loadMarkets();
+ renderConnection();void loadMarkets();
  $('#demoButton').addEventListener('click',async()=>{if(state.mode==='demo')return;state.mode='demo';renderConnection();await loadMarkets();});
  $('#liveButton').addEventListener('click',async()=>{if(!state.status?.pantaConfigured||state.mode==='live')return;state.mode='live';renderConnection();await loadMarkets();});
  $('#refreshButton').addEventListener('click',loadMarkets);
