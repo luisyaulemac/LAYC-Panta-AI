@@ -42,7 +42,8 @@ export async function handleApi(request,env={}){
     quota.n++;if(aiRequests.size>2000)aiRequests.clear();aiRequests.set(ip,quota);
    }
    const market=await getMarket(env,selection,{mode:model});
-   return json(await explainMarket(env,market,market.history,wantsGenerative));
+   const explanation=await explainMarket(env,market,market.history,wantsGenerative);
+   return json({...explanation,market});
   }
   return json({error:'Route not found'},404);
  }catch(err){
