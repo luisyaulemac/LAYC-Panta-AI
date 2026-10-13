@@ -27,6 +27,16 @@ test('Live Panta adapter sends server-side X-Api-Key and handles catalog prices 
  try{const r=await call('/api/markets?mode=live',{PANTA_API_KEY:'fake-secret'});assert.equal(r.status,200);assert.equal(r.data.source,'panta');assert.equal(r.data.items[0].yes,null);assert.equal(key,'fake-secret');assert.match(requested,/\/api\/v1\/markets\/\?limit=/);assert.doesNotMatch(JSON.stringify(r.data),/fake-secret/);}
  finally{globalThis.fetch=prior;}
 });
+test('Live market pagination forwards safe cursors without exposing credentials',async()=>{
+ const old=globalThis.fetch;let requested='';
+ globalThis.fetch=async(u)=>{requested=String(u);return new Response(JSON.stringify({items:[],nextCursor:null}),{status:200,headers:{'content-type':'application/json'}})};
+ try{
+  const ok=await call('/api/markets?mode=live&cursor=eyJpZCI6IjEifQ%3D%3D',{PANTA_API_KEY:'fake'});
+  assert.equal(ok.status,200);assert.match(requested,/cursor=eyJpZCI6IjEifQ%3D%3D/);
+  const bad=await call('/api/markets?mode=live&cursor=%2E%2E',{PANTA_API_KEY:'fake'});
+  assert.equal(bad.status,400);assert.equal(bad.data.code,'INVALID_CURSOR');
+ }finally{globalThis.fetch=old;}
+});
 test('Read-only demo trade tape is available',async()=>{
  const d=await call('/api/market/demo-sol-250/trades?mode=demo');assert.equal(d.status,200);assert.equal(d.data.source,'demo');assert.equal(d.data.items.length,7);
 });
