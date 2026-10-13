@@ -14,7 +14,7 @@ test('Final public homepage has no hero demo, source, or Colosseum marketing CTA
 });
 test('Core functional dashboard and read-only market evidence stay intact',()=>{
  for(const id of ['demoButton','liveButton','refreshButton','marketList','spotlightBody','tradeEvidenceBody','explainButton','phaseFilter','coverage'])
-  assert.match(html,new RegExp('id=["\\']'+id+'["\\']'));
+  assert.ok(html.includes('id="'+id+'"'), 'Missing dashboard element: '+id);
  assert.match(script,/loadTradeEvidence\(id,version\)/);
  assert.match(script,/state\.status\.pantaConfigured/);
  assert.match(script,/api\/market\/.*trades/);
