@@ -22,7 +22,7 @@ export function analyzeMarket(market,history=[]) {
   const snapshotValues=history.filter(v=>num(v)!==null).map(Number);
   const delta=snapshotValues.length>=2 ? Math.round((snapshotValues.at(-1)-snapshotValues[0])*10)/10:null;
   const alerts=[];
-  if (!priceAvailable) alerts.push({level:'info',label:'Spot prices unavailable',detail:'Panta catalog listings omit live prices; open market detail to obtain them.'});
+  if (!priceAvailable) alerts.push({level:'info',label:'Current quotes unavailable',detail:'This Panta response did not provide both YES and NO prices. Market-detail prices depend on upstream on-chain RPC availability; missing values are not estimated.'});
   if (parity!==null&&parity>0.06) alerts.push({level:'warning',label:'Price parity gap',detail:'YES + NO differs substantially from 1. Secondary-market prices may be independently quoted; do not interpret this as arbitrage.'});
   if (priceAvailable && uncertainty>=85) alerts.push({level:'insight',label:'High disagreement',detail:'Prices imply a closely balanced YES/NO market. Market-implied prices are not verified real-world probabilities.'});
   if (priceAvailable && imbalance>=55) alerts.push({level:'insight',label:'Concentrated market signal',detail:'One side currently has a substantially higher quoted price; this is not a guaranteed outcome.'});
