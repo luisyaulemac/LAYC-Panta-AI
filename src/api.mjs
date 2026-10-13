@@ -19,7 +19,7 @@ export async function handleApi(request,env={}){
   const mode=url.searchParams.get('mode')||'demo';
   if(!['demo','live'].includes(mode))return json({error:'Invalid mode',code:'INVALID_MODE'},400);
   if(request.method==='GET'&&url.pathname==='/api/markets'){
-   const result=await listMarkets(env,{mode,limit:Number(url.searchParams.get('limit')||30),cursor:url.searchParams.get('cursor')||''});
+   const result=await listMarkets(env,{mode,limit:Number(url.searchParams.get('limit')||30),cursor:url.searchParams.get('cursor')||'',status:url.searchParams.get('status')||''});
    return json({...result,analysisCount:result.items.length});
   }
   if(request.method==='GET'&&url.pathname.startsWith('/api/market/')&&url.pathname.endsWith('/trades')){
