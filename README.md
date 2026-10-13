@@ -1,6 +1,6 @@
 # LAYC Panta AI — Prediction Intelligence Platform
 
-**Hackathon MVP · v0.1.6**
+**Frozen hackathon MVP · v0.1.7**
 
 [**Launch live dashboard**](https://layc-panta-ai.luisyaulemac.workers.dev/) · [**GitHub repository**](https://github.com/luisyaulemac/LAYC-Panta-AI) · [**Colosseum submission (account login may be required)**](https://colosseum.com/arena/projects/17766/submission)
 
@@ -18,8 +18,12 @@ Read-only prediction market intelligence for the Solana ecosystem, built on Pant
 - **Rules-based explanations are available without paid AI.** Optional external generative AI requires separate configuration and is not currently enabled. Do not interpret explanations as market forecasts. End-of-market times, when available, are included in the explanation and Spotlight in UTC.
 - **Live trade participation analysis:** the Worker fetches Panta's official read-only trade tape and calculates returned trade-row counts, unique wallet addresses, timestamped rows from the last 24 hours, YES-only/NO-only/mixed rows and primary/secondary breakdown. This is bounded sample evidence, **not a probability, unique-person count, cash volume, or total historical order flow**. Signatures link to Solana Explorer when present. If no data is available, the product explicitly says so.
 - Historical live charts require successive local browser snapshots; historical data is not fabricated. A visible **live data-coverage strip** separates catalog records, currently filtered records, detailed markets checked, and markets that actually have available quote pairs.
-- Judges can directly open the recorded demo, open-source implementation and Colosseum project from the hero section. The default sort highlights approaching market deadlines; requested user sort and phase choices remain available.
+- The public landing intentionally presents the product without promotional buttons to videos, source code, or Colosseum. Those references remain in this repository for provenance. The default sort highlights approaching market deadlines; requested user sort and phase choices remain available.
 - Colosseum and Superteam Earn Panta Sidetrack submissions were received before these latest UI improvements. The submitted videos may show an earlier build.
+
+## Freeze / QA
+
+Version v0.1.7 is the final hackathon freeze candidate. Keep the production Worker in read-only mode, preserve `PANTA_API_KEY` as an encrypted Cloudflare secret, and do not change the deployment without running `npm run check && npm test`. The deployment must be confirmed separately; passing tests on GitHub does not automatically publish the Worker.
 
 ## Running locally
 
