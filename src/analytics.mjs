@@ -22,10 +22,14 @@ export function analyzeMarket(market,history=[]) {
   const snapshotValues=history.filter(v=>num(v)!==null).map(Number);
   const delta=snapshotValues.length>=2 ? Math.round((snapshotValues.at(-1)-snapshotValues[0])*10)/10:null;
   const alerts=[];
+  const endTime=num(market?.endTime);
+  const eventEnd=endTime!==null&&endTime>1577836800&&endTime<4102444800?new Date(endTime*1000):null;
+  const ended=eventEnd!==null&&eventEnd.getTime()<=Date.now();
   if (!priceAvailable) alerts.push({level:'info',label:'Current quotes unavailable',detail:'This Panta response did not provide both YES and NO prices. Market-detail prices depend on upstream on-chain RPC availability; missing values are not estimated.'});
   if (parity!==null&&parity>0.06) alerts.push({level:'warning',label:'Price parity gap',detail:'YES + NO differs substantially from 1. Secondary-market prices may be independently quoted; do not interpret this as arbitrage.'});
   if (priceAvailable && uncertainty>=85) alerts.push({level:'insight',label:'High disagreement',detail:'Prices imply a closely balanced YES/NO market. Market-implied prices are not verified real-world probabilities.'});
   if (priceAvailable && imbalance>=55) alerts.push({level:'insight',label:'Concentrated market signal',detail:'One side currently has a substantially higher quoted price; this is not a guaranteed outcome.'});
+  if(ended && !['resolved','cancelled'].includes(String(market?.phase).toLowerCase())) alerts.push({level:'info',label:'Scheduled end passed',detail:'The catalog end timestamp is in the past. Market phase and final settlement must be checked with Panta.'});
   if (volume!==null&&volume<1000) alerts.push({level:'warning',label:'Low reported volume',detail:'Limited recorded activity can weaken price discovery.'});
   if (delta!==null&&Math.abs(delta)>=8) alerts.push({level:'insight',label:'Observed price movement',detail:`Recorded snapshots show a ${delta>0?'rise':'fall'} of ${Math.abs(delta)} percentage points. This is not a forecast.`});
   const strength= !priceAvailable?'Unknown':uncertainty>=80?'Contested':uncertainty<=25?'One-sided':'Mixed';
@@ -33,7 +37,8 @@ export function analyzeMarket(market,history=[]) {
   const reasons=[
     priceAvailable?`YES: ${(yes*100).toFixed(1)}% · NO: ${(no*100).toFixed(1)}%.`:'Spot prices are not available from this response.',
     volume===null?'Reported volume unavailable from Panta.':`Reported volume: ${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Math.max(0,volume))} USDC.`, 
-    delta===null?'Not enough timestamped snapshots for momentum.':`Observed YES change: ${delta>0?'+':''}${delta.toFixed(1)} percentage points across recorded snapshots.`
+    delta===null?'Not enough timestamped snapshots for momentum.':`Observed YES change: ${delta>0?'+':''}${delta.toFixed(1)} percentage points across recorded snapshots.`,
+    eventEnd?`Scheduled market end (UTC): ${eventEnd.toISOString().slice(0,16).replace('T',' ')}. ${ended?'This deadline is in the past.':''}`:'Market end timestamp unavailable.'
   ];
   return {uncertainty,imbalance,parity,delta,alertCount:alerts.length,alerts,strength,observed,reasons,disclaimer:'Market-implied prices are signals, not objective probabilities or financial advice. No trades are available in this application.'};
 }
