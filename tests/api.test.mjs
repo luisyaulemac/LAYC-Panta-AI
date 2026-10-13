@@ -105,6 +105,7 @@ test('Live Panta trade tape is sourced read-only from authenticated upstream',as
   const r=await call('/api/market/'+id+'/trades?mode=live',{PANTA_API_KEY:'mock-secret'});
   assert.equal(r.status,200);assert.equal(r.data.source,'panta');
   assert.equal(r.data.items.length,1);assert.equal(r.data.items[0].yesAmount,'10.00');
+  assert.equal(r.data.activity.sampleCount,1);assert.equal(r.data.activity.yesOnly,1);assert.equal(r.data.activity.noOnly,0);
   assert.match(requested,/\/trades\/\?limit=40$/);
   assert.equal(headers['X-Api-Key'],'mock-secret');
   assert.doesNotMatch(JSON.stringify(r.data),/mock-secret/);
