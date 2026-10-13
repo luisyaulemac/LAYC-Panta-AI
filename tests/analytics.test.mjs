@@ -46,7 +46,7 @@ test('An explicitly reported zero volume is preserved',()=>{
 test('Market insight reports a UTC close time without inventing spot prices',()=>{
  const m=normalizeMarket({marketId:'abc',title:'Future event',phase:'secondary',endTime:1798761600,yesPrice:null,noPrice:null});
  const a=analyzeMarket(m);
- assert.ok(a.reasons.some(s=>s.includes('2026-12-31')));
+ assert.ok(a.reasons.some(s=>s.includes('2027-01-01')));
  assert.equal(a.uncertainty,null);
  assert.ok(a.alerts.some(x=>x.label==='Current quotes unavailable'));
 });
