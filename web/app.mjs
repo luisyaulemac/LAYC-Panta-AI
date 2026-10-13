@@ -42,12 +42,33 @@ function makePlot(history){if(history.length<2)return '<div class="loading" styl
  const d=pts.map(([x,y],i)=>`${i?'L':'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' '),area=d+` L${pts.at(-1)[0]},${h} L${pts[0][0]},${h} Z`;
  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="YES observations from ${vals[0]} to ${vals.at(-1)} percent" preserveAspectRatio="none"><defs><linearGradient id="gradientLine" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#34d4be" stop-opacity=".28"/><stop offset="1" stop-color="#34d4be" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#gradientLine)"/><path d="${d}" fill="none" stroke="#5ee4c5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="4" fill="#8cfce0"/></svg>`;
 }
-function renderSpotlight(){const m=state.selected;if(!m){$('#spotlightBody').innerHTML='<div class="loading">Choose a market to inspect.</div>';return;}
+function renderSpotlight(){const m=state.selected;if(!m){$('#spotlightBody').innerHTML='<div class="loading">Choose a market to inspect.</div>';tradeEvidenceMessage('Select a market to inspect reported trades.');return;}
  const history=m.yes===null?[]:observed(m),unc=quickAnalysis(m).uncertainty;
  const ending=Number.isFinite(m.endTime)&&m.endTime>1577836800?new Date(m.endTime*1000):null;
  const expiry=ending?ending.toLocaleString('en-US',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'UTC',hour12:false})+' UTC':'Not listed';
  setText('#spotlightSource',m.source==='demo'?'DEMO':'PANTA API');$('#spotlightSource').classList.toggle('real',m.source!=='demo');
  $('#spotlightBody').innerHTML=`<div class="category-badge">${esc(m.category)} · ${esc(m.phase)}</div><div class="spotlight-title">${esc(m.title)}</div><div class="spot-meta">Scheduled close: <strong>${esc(expiry)}</strong> · Market ID: <code>${esc(m.id.slice(0,7))}…${esc(m.id.slice(-6))}</code></div><div class="prob-head"><span>Market YES quote</span><strong>${pct(m.yes)}</strong></div><div class="prob-spectrum"><div class="y" style="width:${m.yes===null?0:Math.round(m.yes*100)}%"></div><div class="n" style="width:${m.no===null?0:Math.round(m.no*100)}%"></div></div><div class="split-legend"><span>YES <b class="yes-c">${pct(m.yes)}</b></span><span>NO <b class="no-c">${pct(m.no)}</b></span></div><div class="spark-panel"><div class="spark-title">YES PRICE OBSERVATIONS <small>${m.source==='demo'?'Synthetic sequence · fiction':'Stored browser snapshots · not backfilled'}</small></div>${m.yes===null?'<div class="loading" style="padding:23px 0">Panta has not provided a current YES/NO quote for this market. No price history is inferred.</div>':makePlot(history)}</div><div class="metrics-grid"><div><small>USDC Volume</small><b>${usd(m.volume)}</b></div><div><small>Uncertainty</small><b class="metric-amber">${unc===null?'—':unc+' / 100'}</b></div><div><small>Data source</small><b class="metric-cyan">${m.source==='demo'?'Demo':'Panta'}</b></div></div>`;
+}
+function tradeEvidenceMessage(s){setText('#tradeEvidenceBody',s);}
+async function loadTradeEvidence(id,version){
+ if(state.mode!=='live'){tradeEvidenceMessage('Demo scenarios do not contain real blockchain transaction evidence.');return;}
+ tradeEvidenceMessage('Checking the Panta read-only trade tape…');
+ try{
+  const data=await api(`/api/market/${encodeURIComponent(id)}/trades?mode=live`);
+  if(version!==state.requestId||state.selected?.id!==id||state.mode!=='live')return;
+  const items=Array.isArray(data.items)?data.items:[];
+  if(!items.length){tradeEvidenceMessage('No catalog trades reported for this market in the returned sample. No activity is inferred.');return;}
+  const sums=items.reduce((o,t)=>{const y=Number(t.yesAmount),n=Number(t.noAmount);
+   if(Number.isFinite(y)&&y>=0){o.yes+=y;o.yesKnown++;}
+   if(Number.isFinite(n)&&n>=0){o.no+=n;o.noKnown++;}
+   return o;},{yes:0,no:0,yesKnown:0,noKnown:0});
+  const fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
+  const dates=items.map(t=>Number(t.blockTime)).filter(v=>Number.isFinite(v)&&v>1577836800&&v<4102444800);
+  const newest=dates.length?new Date(Math.max(...dates)*1000).toISOString().replace('T',' ').slice(0,16)+' UTC':'Not reported';
+  const linked=items.filter(t=>/^[1-9A-HJ-NP-Za-km-z]{60,100}$/.test(String(t.signature||''))).slice(0,3);
+  const links=linked.length?'<div class="trade-links">'+linked.map((t,i)=>`<a href="https://explorer.solana.com/tx/${esc(t.signature)}" target="_blank" rel="noopener noreferrer">Verify transaction ${i+1} ↗</a>`).join('')+'</div>':'';
+  $('#tradeEvidenceBody').innerHTML=`<div class="trade-metrics"><span><b>${items.length}</b><small>Reported trade rows</small></span><span><b>${sums.yesKnown?fmt(sums.yes):'—'}</b><small>YES share amount (sample)</small></span><span><b>${sums.noKnown?fmt(sums.no):'—'}</b><small>NO share amount (sample)</small></span></div><div class="trade-time">Latest reported trade: ${esc(newest)}</div>${links}<div class="trade-note">Trade counts and share sums reflect only these API rows, not full historical coverage or spot price. No orders are executed.</div>`;
+ }catch(e){if(version===state.requestId&&state.mode==='live'&&state.selected?.id===id)tradeEvidenceMessage('Trade tape unavailable for this market: '+e.message);}
 }
 function reconcileMarket(existing,detail){
  if(!detail||detail.id!==existing.id)return existing;
@@ -60,7 +81,7 @@ function reconcileMarket(existing,detail){
  };
 }
 async function selectMarket(id){const version=++state.requestId;let market=state.all.find(m=>m.id===id);if(!market)return;
- state.selected=market;renderList();renderSpotlight();setText('#aiSummary','Click “Generate insight” for a transparent data-driven explanation.');$('#insightAlerts').innerHTML='';setText('#aiEngine','Free rules engine');
+ state.selected=market;renderList();renderSpotlight();void loadTradeEvidence(id,version);setText('#aiSummary','Click “Generate insight” for a transparent data-driven explanation.');$('#insightAlerts').innerHTML='';setText('#aiEngine','Free rules engine');
  if(state.mode==='live'){
   try{const result=await api(`/api/market/${encodeURIComponent(id)}?mode=live`);if(version!==state.requestId)return;if(result.market?.id!==id)throw new Error('Panta detail returned a mismatched market');market=reconcileMarket(market,result.market);state.selected=market;state.inspected.add(id);
    const ix=state.all.findIndex(m=>m.id===id);if(ix>=0)state.all[ix]=market;renderStats();renderList();renderSpotlight();}
