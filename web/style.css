@@ -43,3 +43,9 @@
 .trade-links a:hover{background:#164454}
 .trade-note{margin-top:10px;color:#829eaf;font-size:10px}
 @media(max-width:650px){.trade-evidence{margin:4px 12px 14px}.trade-metrics{gap:6px}.trade-metrics b{font-size:13px}}
+
+.activity-breakdown{display:flex;flex-direction:column;gap:4px;margin-top:13px;padding:11px;border:1px solid #2e5060;background:#112b35;border-radius:8px;color:#b1d5dd}
+.activity-breakdown b{color:#8de9e0;font-size:11px}
+.activity-breakdown span{font-size:11px;font-variant-numeric:tabular-nums}
+.trade-observation{margin:10px 0 2px;border-left:2px solid #44d7cb;padding:6px 10px;background:#103340;color:#9be1e0;font-weight:700}
+.trade-observation small{display:block;color:#98b3c1;font-size:10px;font-weight:400;margin-top:3px}
