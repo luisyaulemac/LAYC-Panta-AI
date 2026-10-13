@@ -1,9 +1,9 @@
 const $=s=>document.querySelector(s);
-const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',requestId:0};
+const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',showResolved:false,showUntitled:false,nextCursor:null,loadingMore:false,requestId:0};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n)||0);
 const pct=v=>v===null||v===undefined?'—':`${(Number(v)*100).toFixed(0)}%`;
-const prettynum=n=>n>999999?`${(n/1e6).toFixed(2)}M`:n>999?`${(n/1000).toFixed(1)}K`:String(n);
+const prettynum=n=>{const x=Math.max(0,Number(n)||0);return x>=1e6?`${(x/1e6).toFixed(2)}M`:x>=1e3?`${(x/1e3).toFixed(1)}K`:`${x.toLocaleString('en-US',{maximumFractionDigits:2})}`};
 const niceTime=()=>new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
 const categoryIcon={crypto:'₿',finance:'▥',sports:'◉',science:'✦',world:'◈',politics:'⚑',entertainment:'★',other:'◇'};
 async function api(url,options={}){const resp=await fetch(url,options);let data;try{data=await resp.json()}catch{throw new Error(`Invalid server response (${resp.status})`)}if(!resp.ok)throw new Error(data.error||'Request failed');return data;}
@@ -15,11 +15,17 @@ function observed(m){
  return history.map(v=>v.v);
 }
 function quickAnalysis(m){let c=0;if(m.yes===null)return {uncertainty:null,alerts:0};const u=Math.round((1-Math.abs(m.yes-.5)*2)*100);if(u>=85)c++;if(Math.abs(m.yes-m.no)>=.55)c++;if(m.volume<1000)c++;return{uncertainty:u,alerts:c};}
-function filtered(){const q=state.search.toLowerCase().trim();return state.all.filter(m=>(state.category==='all'||m.category===state.category)&&(!q||`${m.title} ${m.description} ${m.category}`.toLowerCase().includes(q))).sort((a,b)=>state.sort==='uncertainty'?(quickAnalysis(b).uncertainty??-1)-(quickAnalysis(a).uncertainty??-1):state.sort==='yes'?(b.yes??-1)-(a.yes??-1):b.volume-a.volume)}
+function filtered(){const q=state.search.toLowerCase().trim();return state.all.filter(m=>{
+ if(state.mode==='live'){
+  if(!state.showResolved&&['resolved','closed','settled','expired'].includes(String(m.phase).toLowerCase()))return false;
+  if(!state.showUntitled&&(!m.title||m.title==='Untitled market'))return false;
+ }
+ return (state.category==='all'||m.category===state.category)&&(!q||`${m.title} ${m.description} ${m.category}`.toLowerCase().includes(q));
+ }).sort((a,b)=>state.sort==='uncertainty'?(quickAnalysis(b).uncertainty??-1)-(quickAnalysis(a).uncertainty??-1):state.sort==='yes'?(b.yes??-1)-(a.yes??-1):b.volume-a.volume)}
 function setText(id,text){$(id).textContent=text}
 function fillCategories(){const options=[...new Set(state.all.map(m=>m.category))].sort();$('#categoryFilter').innerHTML='<option value="all">All categories</option>'+options.map(c=>`<option value="${esc(c)}">${esc(c[0].toUpperCase()+c.slice(1))}</option>`).join('');if(!options.includes(state.category))state.category='all';$('#categoryFilter').value=state.category;}
-function renderStats(){const priced=state.all.filter(m=>m.yes!==null);setText('#statMarkets',String(state.all.length));setText('#statVolume',usd(state.all.reduce((s,m)=>s+m.volume,0)));setText('#statContested',priced.length?String(priced.filter(m=>quickAnalysis(m).uncertainty>=80).length):'—');setText('#statAlerts',priced.length?String(state.all.reduce((s,m)=>s+quickAnalysis(m).alerts,0)):'—');}
-function renderList(){const rows=filtered();setText('#marketCount',`${rows.length} markets`);if(!rows.length){$('#marketList').innerHTML='<div class="loading">No markets match your filters.</div>';return;}
+function renderStats(){const shown=filtered(),priced=shown.filter(m=>m.yes!==null);setText('#statMarkets',String(shown.length));setText('#statVolume',usd(shown.reduce((s,m)=>s+m.volume,0)));setText('#statContested',priced.length?String(priced.filter(m=>quickAnalysis(m).uncertainty>=80).length):'—');setText('#statAlerts',priced.length?String(shown.reduce((s,m)=>s+quickAnalysis(m).alerts,0)):'—');}
+function renderList(){const rows=filtered();setText('#marketCount',`${rows.length} markets`);renderMore();if(!rows.length){$('#marketList').innerHTML='<div class="loading">No markets match your filters. In Live mode, include resolved or untitled markets, or load another page.</div>';return;}
  $('#marketList').innerHTML=rows.map(m=>{
  const total=(m.yes!==null&&m.no!==null)?m.yes+m.no:0;
  const yeswidth=total?Math.round(m.yes/total*100):0;
@@ -50,10 +56,20 @@ async function selectMarket(id){const version=++state.requestId;let market=state
 }
 function renderConnection(){const ready=Boolean(state.status?.pantaConfigured),live=state.mode==='live';$('#demoButton').classList.toggle('selected',!live);$('#liveButton').classList.toggle('selected',live);$('#liveButton').disabled=!ready;$('#liveButton').title=ready?'Browse real Panta catalog':'Configure PANTA_API_KEY on the server to unlock live mode';
  const warning=$('#dataWarning');warning.classList.toggle('live',live);warning.textContent=live?'LIVE PANTA MODE — Real catalog data. YES/NO prices load per market; historical charts reflect only browser observations.':'DEMO ENVIRONMENT — All market scenarios, volumes and chart histories are fictional. Connect Panta to view real catalog data.';
- setText('#sourceFooter',live?'Panta live read-only catalog':'Fictional demo dataset');}
-async function loadMarkets(){setText('#marketList','');$('#marketList').innerHTML='<div class="loading">Loading '+(state.mode==='demo'?'demo':'Panta')+' markets…</div>';
- try{const data=await api(`/api/markets?mode=${state.mode}&limit=40`);state.all=data.items;state.selected=null;fillCategories();renderStats();renderList();setText('#lastSync',niceTime());await selectMarket((state.all.find(m=>m.title&&m.title!=='Untitled market')||state.all[0])?.id);}
- catch(e){state.all=[];state.selected=null;renderStats();renderSpotlight();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
+ setText('#sourceFooter',live?'Panta live read-only catalog · filtered results':'Fictional demo dataset');$('#liveFilters').hidden=!live;renderMore();}
+function renderMore(){const visible=filtered().length;$('#loadMoreWrap').hidden=state.mode!=='live'||!state.nextCursor;$('#loadMoreButton').disabled=state.loadingMore;setText('#loadMoreButton',state.loadingMore?'Loading Panta markets…':'Load more Panta markets ↓');setText('#catalogNote',`${state.all.length} loaded · ${visible} visible`);}
+async function loadMarkets(){state.nextCursor=null;state.loadingMore=false;$('#marketList').innerHTML='<div class="loading">Loading '+(state.mode==='demo'?'demo':'Panta')+' markets…</div>';
+ try{const data=await api(`/api/markets?mode=${state.mode}&limit=40`);state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);}
+ catch(e){state.all=[];state.selected=null;state.nextCursor=null;renderStats();renderSpotlight();renderMore();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
+}
+async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadingMore)return;
+ state.loadingMore=true;renderMore();const cursor=state.nextCursor;
+ try{const data=await api(`/api/markets?mode=live&limit=40&cursor=${encodeURIComponent(cursor)}`);
+  const seen=new Set(state.all.map(m=>m.id));for(const m of data.items||[])if(!seen.has(m.id)){state.all.push(m);seen.add(m.id);}
+  state.nextCursor=data.nextCursor&&data.nextCursor!==cursor?data.nextCursor:null;
+  fillCategories();renderStats();renderList();setText('#lastSync',niceTime());if(!state.selected&&filtered()[0])await selectMarket(filtered()[0].id);
+ }catch(e){setText('#aiSummary',`Could not load next page: ${e.message}`);}
+ finally{state.loadingMore=false;renderMore();}
 }
 async function explain(){const market=state.selected;if(!market)return;const button=$('#explainButton');button.disabled=true;setText('#aiSummary','Building grounded insight…');$('#insightAlerts').innerHTML='';
  try{const response=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:market.id,mode:state.mode,generative:Boolean(state.status?.aiConfigured)})});
@@ -67,8 +83,11 @@ async function main(){try{state.status=await api('/api/status');if(state.status.
  $('#demoButton').addEventListener('click',async()=>{if(state.mode==='demo')return;state.mode='demo';renderConnection();await loadMarkets();});
  $('#liveButton').addEventListener('click',async()=>{if(!state.status?.pantaConfigured||state.mode==='live')return;state.mode='live';renderConnection();await loadMarkets();});
  $('#refreshButton').addEventListener('click',loadMarkets);
- $('#searchInput').addEventListener('input',e=>{state.search=e.target.value;renderList()});
- $('#categoryFilter').addEventListener('change',e=>{state.category=e.target.value;renderList()});
+ $('#loadMoreButton').addEventListener('click',loadMore);
+ $('#showResolved').addEventListener('change',e=>{state.showResolved=e.target.checked;renderStats();renderList();});
+ $('#showUntitled').addEventListener('change',e=>{state.showUntitled=e.target.checked;renderStats();renderList();});
+ $('#searchInput').addEventListener('input',e=>{state.search=e.target.value;renderStats();renderList()});
+ $('#categoryFilter').addEventListener('change',e=>{state.category=e.target.value;renderStats();renderList()});
  $('#sortFilter').addEventListener('change',e=>{state.sort=e.target.value;renderList()});
  $('#explainButton').addEventListener('click',explain);
 }
