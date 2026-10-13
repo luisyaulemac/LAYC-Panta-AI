@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',showResolved:false,showUntitled:false,nextCursor:null,loadingMore:false,requestId:0};
+const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'volume',showResolved:false,showUntitled:false,phase:'secondary',nextCursor:null,loadingMore:false,requestId:0};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>n===null||n===undefined?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n)||0);
 const pct=v=>v===null||v===undefined?'—':`${(Number(v)*100).toFixed(0)}%`;
@@ -66,15 +66,15 @@ async function selectMarket(id){const version=++state.requestId;let market=state
 }
 function renderConnection(){const ready=Boolean(state.status?.pantaConfigured),live=state.mode==='live';$('#demoButton').classList.toggle('selected',!live);$('#liveButton').classList.toggle('selected',live);$('#liveButton').disabled=!ready;$('#liveButton').title=ready?'Browse real Panta catalog':'Configure PANTA_API_KEY on the server to unlock live mode';
  const warning=$('#dataWarning');warning.classList.toggle('live',live);warning.textContent=live?'LIVE PANTA MODE — Real catalog data. YES/NO prices load per market; historical charts reflect only browser observations.':'DEMO ENVIRONMENT — All market scenarios, volumes and chart histories are fictional. Connect Panta to view real catalog data.';
- setText('#sourceFooter',live?'Panta live read-only catalog · filtered results':'Fictional demo dataset');$('#liveFilters').hidden=!live;renderMore();}
+ setText('#sourceFooter',live?`Panta live read-only catalog · ${state.phase||'all'} phase · filtered results`:'Fictional demo dataset');$('#liveFilters').hidden=!live;renderMore();}
 function renderMore(){const visible=filtered().length,showMore=state.mode==='live'&&Boolean(state.nextCursor);$('#loadMoreWrap').hidden=!showMore;$('#loadNextTop').hidden=!showMore;$('#loadMoreButton').disabled=state.loadingMore;$('#loadNextTop').disabled=state.loadingMore;setText('#loadMoreButton',state.loadingMore?'Loading Panta markets…':'Load more Panta markets ↓');setText('#loadNextTop',state.loadingMore?'Loading…':'Find more markets ↓');setText('#catalogNote',`${state.all.length} loaded · ${visible} visible`);}
 async function loadMarkets(){state.nextCursor=null;state.loadingMore=false;$('#marketList').innerHTML='<div class="loading">Loading '+(state.mode==='demo'?'demo':'Panta')+' markets…</div>';
- try{const data=await api(`/api/markets?mode=${state.mode}&limit=40`);state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);}
+ try{const data=await api(`/api/markets?mode=${state.mode}&limit=40${state.mode==='live'&&state.phase?'&status='+encodeURIComponent(state.phase):''}`);state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);}
  catch(e){state.all=[];state.selected=null;state.nextCursor=null;renderStats();renderSpotlight();renderMore();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
 }
 async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadingMore)return;
  state.loadingMore=true;renderMore();const cursor=state.nextCursor;
- try{const data=await api(`/api/markets?mode=live&limit=40&cursor=${encodeURIComponent(cursor)}`);
+ try{const data=await api(`/api/markets?mode=live&limit=40${state.phase?'&status='+encodeURIComponent(state.phase):''}&cursor=${encodeURIComponent(cursor)}`);
   const seen=new Set(state.all.map(m=>m.id));for(const m of data.items||[])if(!seen.has(m.id)){state.all.push(m);seen.add(m.id);}
   state.nextCursor=data.nextCursor&&data.nextCursor!==cursor?data.nextCursor:null;
   fillCategories();renderStats();renderList();setText('#lastSync',niceTime());if(!state.selected&&filtered()[0])await selectMarket(filtered()[0].id);
@@ -104,6 +104,7 @@ async function main(){try{state.status=await api('/api/status');if(state.status.
  $('#refreshButton').addEventListener('click',loadMarkets);
  $('#loadMoreButton').addEventListener('click',loadMore);
  $('#loadNextTop').addEventListener('click',loadMore);
+ $('#phaseFilter').addEventListener('change',async e=>{state.phase=e.target.value;renderConnection();await loadMarkets();});
  $('#showResolved').addEventListener('change',e=>{state.showResolved=e.target.checked;renderStats();renderList();});
  $('#showUntitled').addEventListener('change',e=>{state.showUntitled=e.target.checked;renderStats();renderList();});
  $('#searchInput').addEventListener('input',e=>{state.search=e.target.value;renderStats();renderList()});
