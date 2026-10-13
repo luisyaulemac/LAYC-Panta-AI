@@ -5,7 +5,7 @@ export function normalizeMarket(item,{demo=false}={}) {
   const yes=num(item.yesPrice??item.primaryYesPrice??item.secondaryYesPrice);
   const no=num(item.noPrice??item.primaryNoPrice??item.secondaryNoPrice);
   return {
-    id:String(item.marketId??item.id??'').slice(0,130),title:String(item.title??'Untitled market').slice(0,300),
+    id:String(item.marketId??item.id??'').slice(0,130),title:String(item.title??'').trim().slice(0,300)||'Untitled market',
     description:String(item.description??'').slice(0,1000),category:String(item.category??'other').toLowerCase().slice(0,40),
     phase:String(item.phase??item.status??'unknown').toLowerCase().slice(0,32),volume:num(item.volumeUsdc)??0,
     yes:yes===null?null:clamp(yes,0,1),no:no===null?null:clamp(no,0,1),
