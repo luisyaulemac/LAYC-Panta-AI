@@ -17,7 +17,7 @@ function observed(m){
 function quickAnalysis(m){let c=0;if(m.yes===null)return {uncertainty:null,alerts:0};const u=Math.round((1-Math.abs(m.yes-.5)*2)*100);if(u>=85)c++;if(Math.abs(m.yes-m.no)>=.55)c++;if(m.volume<1000)c++;return{uncertainty:u,alerts:c};}
 function filtered(){const q=state.search.toLowerCase().trim();return state.all.filter(m=>{
  if(state.mode==='live'){
-  if(!state.showResolved&&['resolved','closed','settled','expired'].includes(String(m.phase).toLowerCase()))return false;
+  if(!state.showResolved&&(['resolved','closed','settled','expired'].includes(String(m.phase).toLowerCase())||(Number(m.endTime)>0&&Number(m.endTime)*1000<Date.now())))return false;
   if(!state.showUntitled&&(!m.title||m.title==='Untitled market'))return false;
  }
  return (state.category==='all'||m.category===state.category)&&(!q||`${m.title} ${m.description} ${m.category}`.toLowerCase().includes(q));
