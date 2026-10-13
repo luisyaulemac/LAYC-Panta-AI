@@ -1,6 +1,6 @@
 # LAYC Panta AI — Prediction Intelligence Platform
 
-**Hackathon MVP · v0.1.5**
+**Hackathon MVP · v0.1.6**
 
 [**Launch live dashboard**](https://layc-panta-ai.luisyaulemac.workers.dev/) · [**GitHub repository**](https://github.com/luisyaulemac/LAYC-Panta-AI) · [**Colosseum project**](https://colosseum.com/arena/projects/17766)
 
@@ -16,7 +16,7 @@ Read-only prediction market intelligence for the Solana ecosystem, built on Pant
 - The catalog pagination action is visible beside filters when more pages exist; only markets returned by Panta are displayed. On initial Live load, **up to two additional pages** are requested automatically if fewer than six relevant markets are visible, keeping catalog discovery bounded and transparent.
 - Demo mode is separately labeled and uses fictional scenarios and synthetic chart observations.
 - **Rules-based explanations are available without paid AI.** Optional external generative AI requires separate configuration and is not currently enabled. Do not interpret explanations as market forecasts. End-of-market times, when available, are included in the explanation and Spotlight in UTC.
-- **New: verifiable read-only market activity.** On market selection, the Worker fetches Panta's documented trades endpoint and displays actual returned trade count, summed reported YES/NO share amounts (sample only), latest available block time, and verified-format transaction signatures linked to Solana Explorer. If no rows or data are available, it says so. No trading or signing is introduced.
+- **Live trade participation analysis:** the Worker fetches Panta's official read-only trade tape and calculates returned trade-row counts, unique wallet addresses, timestamped rows from the last 24 hours, YES-only/NO-only/mixed rows and primary/secondary breakdown. This is bounded sample evidence, **not a probability, unique-person count, cash volume, or total historical order flow**. Signatures link to Solana Explorer when present. If no data is available, the product explicitly says so.
 - Historical live charts require successive local browser snapshots; historical data is not fabricated. A visible **live data-coverage strip** separates catalog records, currently filtered records, detailed markets checked, and markets that actually have available quote pairs.
 - Judges can directly open the recorded demo, open-source implementation and Colosseum project from the hero section. The default sort highlights approaching market deadlines; requested user sort and phase choices remain available.
 - Colosseum and Superteam Earn Panta Sidetrack submissions were received before these latest UI improvements. The submitted videos may show an earlier build.
