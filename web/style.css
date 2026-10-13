@@ -12,3 +12,7 @@
 
 .quality-filters .catalog-next{padding:7px 10px;font-size:10px;white-space:nowrap}
 .quality-filters .catalog-next[hidden]{display:none}
+
+.quality-filters .phase-select{display:inline-flex;align-items:center;gap:7px;color:#a8c6d6}
+.quality-filters .phase-select select{max-width:180px;border:1px solid #344255;border-radius:8px;background:#0a1220;color:#d1e8f6;padding:8px 9px;font-size:11px}
+@media(max-width:650px){.quality-filters .phase-select{flex-basis:100%}}
