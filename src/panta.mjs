@@ -23,11 +23,12 @@ export async function pantaGet(env,path,ttl=45000){
   if(cache.size>=MAX_CACHE) cache.delete(cache.keys().next().value);
   cache.set(ck,{data:payload,expires:Date.now()+ttl}); return payload;
 }
-export async function listMarkets(env,{mode='demo',limit=30,cursor=''}={}){
+export async function listMarkets(env,{mode='demo',limit=30,cursor='',status=''}={}){
   if(mode==='demo')return {items:demoMarkets.map(m=>normalizeMarket(m,{demo:true})),nextCursor:null,source:'demo'};
   const size=Math.max(1,Math.min(50,Math.floor(limit)||30));
   if(cursor && (cursor.length>1000 || !/^[A-Za-z0-9+/_=-]+$/.test(cursor))) throw Object.assign(new Error('Invalid pagination cursor'),{status:400,code:'INVALID_CURSOR'});
-  const query=`/markets/?limit=${size}${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`;
+  if(status && !['primary','secondary','resolved','cancelled'].includes(status)) throw Object.assign(new Error('Invalid Panta market status'),{status:400,code:'INVALID_STATUS'});
+  const query=`/markets/?limit=${size}${status?`&status=${status}`:''}${cursor?`&cursor=${encodeURIComponent(cursor)}`:''}`;
   const data=await pantaGet(env,query,60000);
   if(!Array.isArray(data.items)) throw Object.assign(new Error('Unexpected Panta market list schema'),{status:502,code:'PANTA_SCHEMA'});
   return {items:data.items.map(m=>normalizeMarket(m)),nextCursor:data.nextCursor||null,source:'panta'};
