@@ -52,7 +52,7 @@ function renderConnection(){const ready=Boolean(state.status?.pantaConfigured),l
  const warning=$('#dataWarning');warning.classList.toggle('live',live);warning.textContent=live?'LIVE PANTA MODE — Real catalog data. YES/NO prices load per market; historical charts reflect only browser observations.':'DEMO ENVIRONMENT — All market scenarios, volumes and chart histories are fictional. Connect Panta to view real catalog data.';
  setText('#sourceFooter',live?'Panta live read-only catalog':'Fictional demo dataset');}
 async function loadMarkets(){setText('#marketList','');$('#marketList').innerHTML='<div class="loading">Loading '+(state.mode==='demo'?'demo':'Panta')+' markets…</div>';
- try{const data=await api(`/api/markets?mode=${state.mode}&limit=40`);state.all=data.items;state.selected=null;fillCategories();renderStats();renderList();setText('#lastSync',niceTime());await selectMarket(state.all[0]?.id);}
+ try{const data=await api(`/api/markets?mode=${state.mode}&limit=40`);state.all=data.items;state.selected=null;fillCategories();renderStats();renderList();setText('#lastSync',niceTime());await selectMarket((state.all.find(m=>m.title&&m.title!=='Untitled market')||state.all[0])?.id);}
  catch(e){state.all=[];state.selected=null;renderStats();renderSpotlight();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
 }
 async function explain(){const market=state.selected;if(!market)return;const button=$('#explainButton');button.disabled=true;setText('#aiSummary','Building grounded insight…');$('#insightAlerts').innerHTML='';
@@ -62,7 +62,7 @@ async function explain(){const market=state.selected;if(!market)return;const but
   $('#insightAlerts').innerHTML=(response.analysis?.alerts||[]).slice(0,3).map(a=>`<div class="signal ${a.level==='warning'?'warning':''}"><strong>${esc(a.label)}</strong> — ${esc(a.detail)}</div>`).join('')+`<div class="signal">${esc(response.limitations)}</div>`;
  }catch(e){setText('#aiSummary',e.message);}finally{button.disabled=false;}
 }
-async function main(){try{state.status=await api('/api/status');setText('#apiStatus',state.status.pantaConfigured?'● Panta key configured':'◌ Demo ready');}catch(e){setText('#apiStatus','● Server unavailable');$('#apiStatus').classList.add('failed');}
+async function main(){try{state.status=await api('/api/status');if(state.status.pantaConfigured)state.mode='live';setText('#apiStatus',state.status.pantaConfigured?'● Panta Live available':'◌ Demo ready');}catch(e){setText('#apiStatus','● Server unavailable');$('#apiStatus').classList.add('failed');}
  renderConnection();await loadMarkets();
  $('#demoButton').addEventListener('click',async()=>{if(state.mode==='demo')return;state.mode='demo';renderConnection();await loadMarkets();});
  $('#liveButton').addEventListener('click',async()=>{if(!state.status?.pantaConfigured||state.mode==='live')return;state.mode='live';renderConnection();await loadMarkets();});
