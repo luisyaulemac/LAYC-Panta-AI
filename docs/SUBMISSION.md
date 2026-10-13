@@ -1,6 +1,6 @@
-# Hackathon submission package — English draft
+# Hackathon submission package — submitted project and updated technical notes
 
-> Draft — do not submit or claim real live integration until the Panta API key is configured and verified.
+> Colosseum and Superteam Earn Panta sidetrack submissions have already been received. The live API integration was verified subsequently, and published UI improvements may be newer than the submitted recordings.
 
 ## Project name
 LAYC Panta AI — Prediction Intelligence Platform
@@ -33,8 +33,10 @@ Static web frontend + Cloudflare Worker + Panta API + deterministic signal engin
 ## Business model hypothesis (not traction)
 A free public dashboard for market discovery, with future paid B2B research alerts, API data intelligence, creator widgets and multilingual explanations. This model has not been validated with customers; do not invent users or revenue.
 
-## Current demo limitations
-The provided local demo uses **fictional** Panta-like scenarios and synthetic chart sequences. A public deployed link, configured production Panta API key, real live market screenshots, user testing, and final video still must be completed. We will show authentic integrations only after end-to-end testing.
+## Current verified capabilities and limitations
+The public deployed dashboard now authenticates to the **Panta Live API** with a server-side secret and has returned real catalog records, and selected market details with quotes where supplied. Demo mode remains explicitly fictional. Some live listings have empty titles; resolved markets display terminal 0% or 100% prices rather than a future forecast. By default, the interface hides unnamed, resolved, and expired entries, with controls to show them. The visible free insight engine is deterministic; the external generative AI provider is **not configured**. Never claim independent accuracy validation, users or live trading.
+
+**Project links:** [Dashboard](https://layc-panta-ai.luisyaulemac.workers.dev/) · [Pitch](https://www.youtube.com/watch?v=cC227n0Lwxw) · [Recorded demo](https://www.youtube.com/watch?v=akCzuvhDPU0).
 
 ## Video walkthrough outline (90–120 seconds)
 - 0:00 — Who needs market intelligence without trading?
@@ -56,18 +58,18 @@ The provided local demo uses **fictional** Panta-like scenarios and synthetic ch
 
 Sources: [Colosseum official FAQ](https://colosseum.com/hackathon?year=fall2026) and [Superteam guide to the submission form](https://tr.superteam.fun/colosseum/the-form-itself).
 
-## Submission checklist
-- [ ] Create Colosseum account, register for official hackathon.
+## Submission checklist (recorded status as of 2026-10-13)
+- [x] Create Colosseum account, register for official hackathon.
 - [ ] Confirm eligibility and only one project/team.
-- [ ] Add project and complete required fields in English.
-- [ ] Obtain Panta API key and store as Cloudflare Worker secret.
-- [ ] Prove the live Panta list and detail calls work; capture evidence.
-- [ ] Record functional demo, ideally with live data; clearly label demo scenarios.
-- [ ] Deploy and test public stable URL (desktop/mobile, failure states).
-- [ ] Decide whether to open source code; disclose pre-hackathon code if any.
-- [ ] Submit to Colosseum before its deadline.
-- [ ] Submit separately to Panta Sidetrack on Superteam Earn.
-- [ ] Keep confirmation screenshots/links of both submissions.
+- [x] Add project and complete required fields in English.
+- [x] Obtain Panta Live API key and store as Cloudflare Worker secret.
+- [x] Verify the live Panta list and detail calls using real API responses.
+- [x] Record pitch and demo videos; clarify that the recordings may show an earlier build.
+- [x] Deploy and inspect the public URL on desktop. (Mobile and further QA remain ongoing.)
+- [x] Publish code repository on GitHub; other disclosures depend on the official submission.
+- [x] Submit to Colosseum (portal showed Submitted / entered for judging).
+- [x] Submit separately to Panta Sidetrack on Superteam Earn (confirmation received).
+- [x] Confirmations were viewed for both portals.
 
 ## Authoritative links
 - https://superteam.fun/earn/listing/panta-api-side-track
