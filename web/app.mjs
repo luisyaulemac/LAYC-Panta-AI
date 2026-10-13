@@ -71,12 +71,25 @@ async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadi
  }catch(e){setText('#aiSummary',`Could not load next page: ${e.message}`);}
  finally{state.loadingMore=false;renderMore();}
 }
-async function explain(){const market=state.selected;if(!market)return;const button=$('#explainButton');button.disabled=true;setText('#aiSummary','Building grounded insight…');$('#insightAlerts').innerHTML='';
- try{const response=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:market.id,mode:state.mode,generative:Boolean(state.status?.aiConfigured)})});
-  if(state.selected?.id!==market.id)return;
+async function explain(){const market=state.selected;if(!market)return;
+ const requestedMode=state.mode,button=$('#explainButton');button.disabled=true;setText('#aiSummary','Building grounded insight…');$('#insightAlerts').innerHTML='';
+ try{const response=await api('/api/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:market.id,mode:requestedMode,generative:Boolean(state.status?.aiConfigured)})});
+  if(state.selected?.id!==market.id||state.mode!==requestedMode)return;
+  // Explain and Spotlight must display the same Panta detail response.
+  if(response.market?.id===market.id){
+   const old=state.all.find(m=>m.id===market.id)||market;
+   const fresh={...old,...response.market};
+   if(fresh.title==='Untitled market'&&old.title!=='Untitled market')fresh.title=old.title;
+   if(fresh.category==='other'&&old.category!=='other')fresh.category=old.category;
+   if(!fresh.description&&old.description)fresh.description=old.description;
+   if(!fresh.endTime&&old.endTime)fresh.endTime=old.endTime;
+   state.selected=fresh;
+   const ix=state.all.findIndex(m=>m.id===market.id);if(ix>=0)state.all[ix]=fresh;
+   renderStats();renderList();renderSpotlight();
+  }
   setText('#aiSummary',response.summary+(response.warning?'\n\n'+response.warning:''));setText('#aiEngine',response.engine);
   $('#insightAlerts').innerHTML=(response.analysis?.alerts||[]).slice(0,3).map(a=>`<div class="signal ${a.level==='warning'?'warning':''}"><strong>${esc(a.label)}</strong> — ${esc(a.detail)}</div>`).join('')+`<div class="signal">${esc(response.limitations)}</div>`;
- }catch(e){setText('#aiSummary',e.message);}finally{button.disabled=false;}
+ }catch(e){if(state.selected?.id===market.id&&state.mode===requestedMode)setText('#aiSummary',e.message);}finally{button.disabled=false;}
 }
 async function main(){try{state.status=await api('/api/status');if(state.status.pantaConfigured)state.mode='live';setText('#apiStatus',state.status.pantaConfigured?'● Panta Live available':'◌ Demo ready');}catch(e){setText('#apiStatus','● Server unavailable');$('#apiStatus').classList.add('failed');}
  renderConnection();await loadMarkets();
