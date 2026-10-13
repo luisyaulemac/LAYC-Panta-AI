@@ -1,6 +1,6 @@
 {
   "name": "layc-panta-ai",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": true,
   "type": "module",
   "description": "Read-only prediction market intelligence dashboard powered by Panta API",
@@ -9,6 +9,6 @@
     "dev": "node server/dev-server.mjs",
     "start": "node server/dev-server.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check web/app.mjs && node --check src/api.mjs && node --check src/panta.mjs && node --check src/analytics.mjs && node --check src/ai.mjs"
+    "check": "node --check web/app.mjs && node --check src/api.mjs && node --check src/panta.mjs && node --check src/analytics.mjs && node --check src/activity.mjs && node --check src/ai.mjs"
   }
 }
