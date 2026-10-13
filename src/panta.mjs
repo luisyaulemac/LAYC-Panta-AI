@@ -36,7 +36,8 @@ export async function getMarket(env,id,{mode='demo'}={}){
   if(mode==='demo') {const m=demoMarkets.find(x=>x.marketId===id);if(!m)throw Object.assign(new Error('Demo market not found'),{status:404,code:'MARKET_NOT_FOUND'});return normalizeMarket(m,{demo:true});}
   if(!/^[1-9A-HJ-NP-Za-km-z]{30,60}$/.test(id))throw Object.assign(new Error('Invalid Panta market identifier'),{status:400,code:'INVALID_MARKET_ID'});
   const row=await pantaGet(env,`/markets/${id}/`,30000);
-  return normalizeMarket(row);
+  const market=normalizeMarket(row);
+  return {...market,id:market.id||id};
 }
 export async function getTrades(env,id,{mode='demo'}={}){
   if(mode==='demo') {if(!demoMarkets.some(x=>x.marketId===id))throw Object.assign(new Error('Demo market not found'),{status:404});return {items:demoTrades(id),source:'demo'};}
