@@ -4,6 +4,10 @@ async function call(path,env={},options={}){const res=await handleApi(new Reques
 test('Health status marks all trades disabled and Panta key not configured',async()=>{
  const x=await call('/api/status');assert.equal(x.status,200);assert.equal(x.data.tradingEnabled,false);assert.equal(x.data.pantaConfigured,false);
 });
+test('Status reports Live as default only when server key is present',async()=>{
+ const demo=await call('/api/status');assert.equal(demo.data.defaultMode,'demo');
+ const live=await call('/api/status',{PANTA_API_KEY:'mock-key'});assert.equal(live.data.defaultMode,'live');
+});
 test('Demo list comes from mock data and declares provenance',async()=>{
  const r=await call('/api/markets?mode=demo');assert.equal(r.status,200);assert.equal(r.data.source,'demo');assert.ok(r.data.items.length>=5);assert.ok(r.data.items.every(x=>x.source==='demo'));
 });
@@ -45,4 +49,34 @@ test('Generative AI is optional; requesting it with no config safely falls back'
 });
 test('Reject excessively large explanation request',async()=>{
  const d=await call('/api/explain',{}, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:'x'.repeat(3500)})});assert.equal(d.status,413);
+});
+
+test('Analysis returns the identical fresh market quote for synchronizing Spotlight',async()=>{
+ const prior=globalThis.fetch;
+ const id='9C8HiJqpnZDGt3DZBZgg9zG44aVEnJ5RRqwCumnWSMb9';
+ globalThis.fetch=async(url,options)=>{
+  assert.match(String(url),/\/markets\/9C8HiJqpnZDGt3DZBZgg9zG44aVEnJ5RRqwCumnWSMb9\/$/);
+  assert.equal(options.headers['X-Api-Key'],'mock-secret');
+  return new Response(JSON.stringify({
+   title:'A real Panta market',category:'finance',phase:'secondary',
+   yesPrice:'0.495',noPrice:'0.505',volumeUsdc:'499'
+  }),{status:200,headers:{'content-type':'application/json'}});
+ };
+ try{
+  const env={PANTA_API_KEY:'mock-secret'};
+  const detail=await call('/api/market/'+id+'?mode=live',env);
+  const explained=await call('/api/explain',env,{
+   method:'POST',headers:{'content-type':'application/json'},
+   body:JSON.stringify({id,mode:'live',generative:false})
+  });
+  assert.equal(detail.status,200);
+  assert.equal(explained.status,200);
+  assert.equal(explained.data.market.id,id);
+  assert.deepEqual(explained.data.market,detail.data.market);
+  assert.equal(explained.data.market.yes,0.495);
+  assert.equal(explained.data.market.no,0.505);
+  assert.equal(explained.data.market.volume,499);
+  assert.match(explained.data.summary,/YES: 49\.5%/);
+  assert.doesNotMatch(JSON.stringify(explained.data),/mock-secret/);
+ }finally{globalThis.fetch=prior;}
 });
