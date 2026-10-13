@@ -2,7 +2,7 @@
 
 **Hackathon MVP · v0.1.6**
 
-[**Launch live dashboard**](https://layc-panta-ai.luisyaulemac.workers.dev/) · [**GitHub repository**](https://github.com/luisyaulemac/LAYC-Panta-AI) · [**Colosseum project**](https://colosseum.com/arena/projects/17766)
+[**Launch live dashboard**](https://layc-panta-ai.luisyaulemac.workers.dev/) · [**GitHub repository**](https://github.com/luisyaulemac/LAYC-Panta-AI) · [**Colosseum submission (account login may be required)**](https://colosseum.com/arena/projects/17766/submission)
 
 Read-only prediction market intelligence for the Solana ecosystem, built on Panta's official API. Explore catalog data, open individual markets to inspect available YES/NO quotes, compare uncertainty signals and generate explainable rules-based commentary. **No trading, wallet signing, or transaction execution.**
 
