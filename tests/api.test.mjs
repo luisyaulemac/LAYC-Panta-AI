@@ -94,3 +94,19 @@ test('Official Panta status filter narrows the upstream catalog and validates in
   assert.doesNotMatch(JSON.stringify(ok.data),/mock/);
  }finally{globalThis.fetch=prior;}
 });
+
+test('Live Panta trade tape is sourced read-only from authenticated upstream',async()=>{
+ const prior=globalThis.fetch;
+ const id='9C8HiJqpnZDGt3DZBZgg9zG44aVEnJ5RRqwCumnWSMb9';let requested='',headers;
+ globalThis.fetch=async(url,options)=>{requested=String(url);headers=options.headers;
+  return new Response(JSON.stringify({marketId:id,items:[{id:1,yesAmount:'10.00',noAmount:'0',blockTime:1792000000,signature:'5VEJv1R'}]}),{status:200,headers:{'content-type':'application/json'}});
+ };
+ try{
+  const r=await call('/api/market/'+id+'/trades?mode=live',{PANTA_API_KEY:'mock-secret'});
+  assert.equal(r.status,200);assert.equal(r.data.source,'panta');
+  assert.equal(r.data.items.length,1);assert.equal(r.data.items[0].yesAmount,'10.00');
+  assert.match(requested,/\/trades\/\?limit=40$/);
+  assert.equal(headers['X-Api-Key'],'mock-secret');
+  assert.doesNotMatch(JSON.stringify(r.data),/mock-secret/);
+ }finally{globalThis.fetch=prior;}
+});
