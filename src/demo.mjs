@@ -1,0 +1,15 @@
+// FICTIONAL DEMONSTRATION SCENARIOS. Not live Panta markets or real trading opportunities.
+export const demoMarkets = [
+  {marketId:'demo-sol-250',title:'Will SOL trade above $250 by December 31?',category:'crypto',description:'Fictional market for showcasing price discovery and market-intelligence features.',phase:'primary',volumeUsdc:'186420.50',yesPrice:'0.62',noPrice:'0.38',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[44,49,46,52,51,55,53,58,60,57,62]},
+  {marketId:'demo-btc-100k',title:'Will BTC close above $100,000 this quarter?',category:'crypto',description:'Fictional crypto event; values generated for presentation purposes.',phase:'primary',volumeUsdc:'98320.12',yesPrice:'0.73',noPrice:'0.27',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[61,63,65,62,66,64,68,69,71,70,73]},
+  {marketId:'demo-fed-rate',title:'Will the Fed cut rates at its next meeting?',category:'finance',description:'Fictional macroeconomic scenario.',phase:'primary',volumeUsdc:'59200.00',yesPrice:'0.48',noPrice:'0.52',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[54,52,51,50,49,50,48,46,48,47,48]},
+  {marketId:'demo-team-final',title:'Will the home team win the cup final?',category:'sports',description:'Fictional match outcome market used only for the demo.',phase:'secondary',volumeUsdc:'27850.00',yesPrice:'0.57',noPrice:'0.43',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[50,51,53,52,56,59,58,56,55,57,57]},
+  {marketId:'demo-ai-release',title:'Will a new major open AI model launch this month?',category:'science',description:'Fictional technology event.',phase:'primary',volumeUsdc:'13120.00',yesPrice:'0.36',noPrice:'0.64',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[24,27,25,28,30,29,31,30,33,35,36]},
+  {marketId:'demo-eth-etf',title:'Will ETH outperform BTC over 30 days?',category:'crypto',description:'Fictional cross-asset performance event.',phase:'primary',volumeUsdc:'41190.50',yesPrice:'0.51',noPrice:'0.49',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[49,50,53,51,52,50,48,47,49,50,51]},
+  {marketId:'demo-climate',title:'Will a new climate agreement be signed this year?',category:'world',description:'Fictional public-policy event.',phase:'primary',volumeUsdc:'17400.00',yesPrice:'0.29',noPrice:'0.71',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[39,38,37,34,33,35,34,32,31,30,29]},
+  {marketId:'demo-cpi',title:'Will monthly US CPI come in below consensus?',category:'finance',description:'Fictional inflation-event scenario.',phase:'primary',volumeUsdc:'83600.00',yesPrice:'0.43',noPrice:'0.57',startTime:1791000000,endTime:1798761599,region:'Global',images:[],history:[52,51,50,47,49,45,46,44,45,42,43]}
+];
+export const demoTrades = (marketId) => Array.from({length:7}, (_,i)=>({
+  id:`demo-trade-${i+1}`,marketId,isPrimary:true,yesAmount: String((i+1)*5),noAmount: String(i%2?3:0),
+  feePaid:'0.02',blockTime:1791000000+i*3600,signature:`DEMO-${i+1}`,quoteAsset:'USDC'
+}));
