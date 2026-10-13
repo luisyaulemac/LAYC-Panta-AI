@@ -15,7 +15,7 @@ export async function handleApi(request,env={}){
  try{
   const url=new URL(request.url);
   if(!enforceLimit(request))return json({error:'Too many requests',code:'RATE_LIMITED'},429);
-  if(request.method==='GET'&&url.pathname==='/api/status')return json({ok:true,version:'0.1.6',pantaConfigured:isLiveReady(env),aiConfigured:Boolean(env.LLM_ENDPOINT&&env.LLM_API_KEY&&env.LLM_MODEL),defaultMode:isLiveReady(env)?'live':'demo',tradingEnabled:false});
+  if(request.method==='GET'&&url.pathname==='/api/status')return json({ok:true,version:'0.1.7',pantaConfigured:isLiveReady(env),aiConfigured:Boolean(env.LLM_ENDPOINT&&env.LLM_API_KEY&&env.LLM_MODEL),defaultMode:isLiveReady(env)?'live':'demo',tradingEnabled:false});
   const mode=url.searchParams.get('mode')||'demo';
   if(!['demo','live'].includes(mode))return json({error:'Invalid mode',code:'INVALID_MODE'},400);
   if(request.method==='GET'&&url.pathname==='/api/markets'){
