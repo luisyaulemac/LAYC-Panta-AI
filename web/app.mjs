@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'soonest',showResolved:false,showUntitled:false,phase:'secondary',nextCursor:null,loadingMore:false,requestId:0,catalogSerial:0,inspected:new Set()};
+const state={mode:'demo',all:[],selected:null,status:null,search:'',category:'all',sort:'soonest',showResolved:false,showUntitled:false,phase:'secondary',nextCursor:null,loadingMore:false,requestId:0,catalogSerial:0,inspected:new Set(),activity:null};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const usd=n=>n===null||n===undefined?'—':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n)||0);
 const pct=v=>v===null||v===undefined?'—':`${(Number(v)*100).toFixed(0)}%`;
@@ -56,19 +56,16 @@ async function loadTradeEvidence(id,version){
  try{
   const data=await api(`/api/market/${encodeURIComponent(id)}/trades?mode=live`);
   if(version!==state.requestId||state.selected?.id!==id||state.mode!=='live')return;
-  const items=Array.isArray(data.items)?data.items:[];
-  if(!items.length){tradeEvidenceMessage('No catalog trades reported for this market in the returned sample. No activity is inferred.');return;}
-  const sums=items.reduce((o,t)=>{const y=Number(t.yesAmount),n=Number(t.noAmount);
-   if(Number.isFinite(y)&&y>=0){o.yes+=y;o.yesKnown++;}
-   if(Number.isFinite(n)&&n>=0){o.no+=n;o.noKnown++;}
-   return o;},{yes:0,no:0,yesKnown:0,noKnown:0});
-  const fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:2});
-  const dates=items.map(t=>Number(t.blockTime)).filter(v=>Number.isFinite(v)&&v>1577836800&&v<4102444800);
-  const newest=dates.length?new Date(Math.max(...dates)*1000).toISOString().replace('T',' ').slice(0,16)+' UTC':'Not reported';
-  const linked=items.filter(t=>/^[1-9A-HJ-NP-Za-km-z]{60,100}$/.test(String(t.signature||''))).slice(0,3);
+  const items=Array.isArray(data.items)?data.items:[],a=data.activity;
+  if(!items.length||!a){state.activity=null;tradeEvidenceMessage('No catalog trade rows reported in this sample. This does not prove zero lifetime activity.');return;}
+  state.activity={id,...a};
+  const latest=a.latestBlockTime?new Date(a.latestBlockTime*1000).toISOString().replace('T',' ').slice(0,16)+' UTC':'Not reported';
+  const validSig=s=>/^[1-9A-HJ-NP-Za-km-z]{60,100}$/.test(String(s||''));
+  const seen=new Set();
+  const linked=items.filter(t=>{if(!validSig(t.signature)||seen.has(t.signature))return false;seen.add(t.signature);return true;}).slice(0,3);
   const links=linked.length?'<div class="trade-links">'+linked.map((t,i)=>`<a href="https://explorer.solana.com/tx/${esc(t.signature)}" target="_blank" rel="noopener noreferrer">Verify transaction ${i+1} ↗</a>`).join('')+'</div>':'';
-  $('#tradeEvidenceBody').innerHTML=`<div class="trade-metrics"><span><b>${items.length}</b><small>Reported trade rows</small></span><span><b>${sums.yesKnown?fmt(sums.yes):'—'}</b><small>YES share amount (sample)</small></span><span><b>${sums.noKnown?fmt(sums.no):'—'}</b><small>NO share amount (sample)</small></span></div><div class="trade-time">Latest reported trade: ${esc(newest)}</div>${links}<div class="trade-note">Trade counts and share sums reflect only these API rows, not full historical coverage or spot price. No orders are executed.</div>`;
- }catch(e){if(version===state.requestId&&state.mode==='live'&&state.selected?.id===id)tradeEvidenceMessage('Trade tape unavailable for this market: '+e.message);}
+  $('#tradeEvidenceBody').innerHTML=`<div class="trade-metrics"><span><b>${a.sampleCount}</b><small>Catalog trade rows</small></span><span><b>${a.uniqueWallets}</b><small>Distinct wallets in sample</small></span><span><b>${a.recent24h}</b><small>Rows in last 24h</small></span></div><div class="activity-breakdown"><b>Sample-side activity</b><span>YES-only: ${a.yesOnly} · NO-only: ${a.noOnly} · Both: ${a.both} · Unknown: ${a.unclassified}</span><span>Primary: ${a.primary} · Secondary: ${a.secondary} · Dated: ${a.dated}/${a.sampleCount}</span></div><div class="trade-time">Latest reported trade: ${esc(latest)}</div><div class="trade-observation">${esc(a.observation)} <small>Classification of recorded rows only — not a price or a forecast.</small></div>${links}<div class="trade-note">${esc(a.limitations)} Signatures link to Solana Explorer for independent checking; their presence is not a claim of settlement or profitability.</div>`;
+ }catch(e){if(version===state.requestId&&state.mode==='live'&&state.selected?.id===id){state.activity=null;tradeEvidenceMessage('Trade tape unavailable for this market: '+e.message);}}
 }
 function reconcileMarket(existing,detail){
  if(!detail||detail.id!==existing.id)return existing;
@@ -81,7 +78,7 @@ function reconcileMarket(existing,detail){
  };
 }
 async function selectMarket(id){const version=++state.requestId;let market=state.all.find(m=>m.id===id);if(!market)return;
- state.selected=market;renderList();renderSpotlight();void loadTradeEvidence(id,version);setText('#aiSummary','Click “Generate insight” for a transparent data-driven explanation.');$('#insightAlerts').innerHTML='';setText('#aiEngine','Free rules engine');
+ state.selected=market;state.activity=null;renderList();renderSpotlight();void loadTradeEvidence(id,version);setText('#aiSummary','Click “Generate insight” for a transparent data-driven explanation.');$('#insightAlerts').innerHTML='';setText('#aiEngine','Free rules engine');
  if(state.mode==='live'){
   try{const result=await api(`/api/market/${encodeURIComponent(id)}?mode=live`);if(version!==state.requestId)return;if(result.market?.id!==id)throw new Error('Panta detail returned a mismatched market');market=reconcileMarket(market,result.market);state.selected=market;state.inspected.add(id);
    const ix=state.all.findIndex(m=>m.id===id);if(ix>=0)state.all[ix]=market;renderStats();renderList();renderSpotlight();}
@@ -93,7 +90,7 @@ function renderConnection(){const ready=Boolean(state.status?.pantaConfigured),l
  setText('#sourceFooter',live?`Panta live read-only catalog · ${state.phase||'all'} phase · filtered results`:'Fictional demo dataset');$('#liveFilters').hidden=!live;renderMore();}
 function renderMore(){const visible=filtered().length,showMore=state.mode==='live'&&Boolean(state.nextCursor);$('#loadMoreWrap').hidden=!showMore;$('#loadNextTop').hidden=!showMore;$('#loadMoreButton').disabled=state.loadingMore;$('#loadNextTop').disabled=state.loadingMore;setText('#loadMoreButton',state.loadingMore?'Loading Panta markets…':'Load more Panta markets ↓');setText('#loadNextTop',state.loadingMore?'Loading…':'Find more markets ↓');setText('#catalogNote',`${state.all.length} loaded · ${visible} visible`);}
 async function loadMarkets(){const serial=++state.catalogSerial,mode=state.mode,phase=state.phase;state.requestId++;state.nextCursor=null;state.loadingMore=false;state.inspected=new Set();$('#marketList').innerHTML='<div class="loading">Loading '+(mode==='demo'?'demo':'Panta')+' markets…</div>';
- try{const data=await api(`/api/markets?mode=${mode}&limit=50${mode==='live'&&phase?'&status='+encodeURIComponent(phase):''}`);if(serial!==state.catalogSerial)return;state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);if(mode==='live'&&serial===state.catalogSerial)void discoverMore(serial);}
+ try{const data=await api(`/api/markets?mode=${mode}&limit=50${mode==='live'&&phase?'&status='+encodeURIComponent(phase):''}`);if(serial!==state.catalogSerial)return;state.all=data.items;state.nextCursor=data.nextCursor||null;state.selected=null;state.activity=null;fillCategories();renderStats();renderList();renderSpotlight();setText('#lastSync',niceTime());const first=filtered()[0];if(first)await selectMarket(first.id);if(mode==='live'&&serial===state.catalogSerial)void discoverMore(serial);}
  catch(e){if(serial!==state.catalogSerial)return;state.all=[];state.selected=null;state.nextCursor=null;renderStats();renderSpotlight();renderMore();$('#marketList').innerHTML=`<div class="loading">${esc(e.message)}<br/>Check server configuration or return to Demo scenarios.</div>`;}
 }
 async function loadMore(){if(state.mode!=='live'||!state.nextCursor||state.loadingMore)return false;
@@ -119,7 +116,9 @@ async function explain(){const market=state.selected;if(!market)return;
    const ix=state.all.findIndex(m=>m.id===market.id);if(ix>=0)state.all[ix]=fresh;
    renderStats();renderList();renderSpotlight();
   }
-  setText('#aiSummary',response.summary+(response.warning?'\n\n'+response.warning:''));setText('#aiEngine',response.engine);
+  const activity=state.activity?.id===market.id?state.activity:null;
+  const activityNote=activity?`\n\nObserved catalog activity: ${activity.sampleCount} trade rows, ${activity.uniqueWallets} distinct wallets, ${activity.recent24h} timestamped rows in the last 24 hours. YES-only ${activity.yesOnly}; NO-only ${activity.noOnly}; mixed ${activity.both}. This is sample evidence, not a prediction or market probability.`:'';
+  setText('#aiSummary',response.summary+activityNote+(response.warning?'\n\n'+response.warning:''));setText('#aiEngine',response.engine);
   $('#insightAlerts').innerHTML=(response.analysis?.alerts||[]).slice(0,3).map(a=>`<div class="signal ${a.level==='warning'?'warning':''}"><strong>${esc(a.label)}</strong> — ${esc(a.detail)}</div>`).join('')+`<div class="signal">${esc(response.limitations)}</div>`;
  }catch(e){if(state.selected?.id===market.id&&state.mode===requestedMode)setText('#aiSummary',e.message);}finally{button.disabled=false;}
 }
