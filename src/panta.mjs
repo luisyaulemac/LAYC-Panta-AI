@@ -1,4 +1,5 @@
 import { normalizeMarket } from './analytics.mjs';
+import { summarizeTradeActivity } from './activity.mjs';
 import {demoMarkets,demoTrades} from './demo.mjs';
 const cache=new Map();
 const API_BASE='https://live-api.panta.market/api/v1';
@@ -41,8 +42,9 @@ export async function getMarket(env,id,{mode='demo'}={}){
   return {...market,id:market.id||id};
 }
 export async function getTrades(env,id,{mode='demo'}={}){
-  if(mode==='demo') {if(!demoMarkets.some(x=>x.marketId===id))throw Object.assign(new Error('Demo market not found'),{status:404});return {items:demoTrades(id),source:'demo'};}
+  if(mode==='demo') {if(!demoMarkets.some(x=>x.marketId===id))throw Object.assign(new Error('Demo market not found'),{status:404});const items=demoTrades(id);return {items,activity:summarizeTradeActivity(items),source:'demo'};}
   if(!/^[1-9A-HJ-NP-Za-km-z]{30,60}$/.test(id))throw Object.assign(new Error('Invalid Panta market identifier'),{status:400});
   const row=await pantaGet(env,`/markets/${id}/trades/?limit=40`,30000);
-  return {items:Array.isArray(row.items)?row.items:[],source:'panta'};
+  const items=Array.isArray(row.items)?row.items.slice(0,40):[];
+  return {items,activity:summarizeTradeActivity(items),source:'panta'};
 }
