@@ -9,3 +9,6 @@
 .load-more-wrap{text-align:center;border-top:1px solid #263345;padding:16px 20px}
 .load-more-wrap .refresh:disabled{opacity:.6;cursor:wait}
 @media(max-width:650px){.quality-filters{padding:0 15px 13px;gap:10px}.quality-filters span{margin-left:0;flex-basis:100%}}
+
+.quality-filters .catalog-next{padding:7px 10px;font-size:10px;white-space:nowrap}
+.quality-filters .catalog-next[hidden]{display:none}
